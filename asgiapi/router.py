@@ -1,5 +1,11 @@
 from asgiapi.utils.router_utils import compile_path
 
+class MethodNotAllowed(Exception):
+    pass
+
+class RouteNotFound(Exception):
+    pass
+
 class Route:
     def __init__(self,path_template,regex,params_names,method,handler):
         self.path_template = path_template
@@ -24,6 +30,29 @@ class Router:
             params_names=params_names,
             method=method,handler=handler)
         self.routes.append(route)
+
+    def match(self,path,method):
+        path_matched = False
+
+        for route in self.routes:
+            match = route.regex.match(path)
+
+            if not match:
+                continue
+
+            path_matched = True
+
+            if method != route.method:
+                continue
+            
+            params = match.groupdict(path)
+            return route.handler, params
+
+        if path_matched:
+            raise MethodNotAllowed(f"Method {method} not allowed for path {path}")
+
+        raise RouteNotFound(f"No Route found for path {path}") 
+        
     
     def __str__(self):
         for route in self.routes:
