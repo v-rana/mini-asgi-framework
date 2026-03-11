@@ -1,8 +1,11 @@
-from asgiapi.utils import compile_path
+from asgiapi.utils.router_utils import compile_path
 
 
-path = "/users/{id}"
-regex, params_names = compile_path(path)
+def test_compile_path():
 
-print(f"Compiled regex: {regex}")
-print(f"Parameter names: {params_names}")
+    regex, params = compile_path("/users/{id}")
+
+    match = regex.match("/users/42")
+
+    assert match is not None
+    assert match.groupdict() == {"id": "42"}
