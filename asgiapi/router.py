@@ -53,6 +53,11 @@ class Router:
 
         raise RouteNotFound(f"No Route found for path {path}") 
         
+    def __getitem__(self, key):
+        try:
+            return self.routes[key]
+        except IndexError:
+            raise IndexError(f"Route index {key} out of range. Total routes: {len(self.routes)}")
     
     def __str__(self):
         for route in self.routes:
