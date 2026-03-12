@@ -1,5 +1,6 @@
 #a app class with asgi contract
 import json
+import inspect
 from asgiapi.router import Router
 from asgiapi.response import JSONResponse
 from functools import wraps 
@@ -23,6 +24,8 @@ class App:
         try:
             handler, params = self.router.match(path,method)
 
+            self._validate_handler_params(handler,params)
+
             result = await handler(**params)
 
             response = JSONResponse(result)
@@ -32,6 +35,15 @@ class App:
         
         await response.send(send)
     
+    def _validate_handler_params(self,handler,params):
+        
+        sig = inspect.signature(handler)
+
+        try:
+            sig.bind_partial(**params)
+        except TypeError as e:
+            raise ValueError(f"Handler parameters do not match the route parameters: {e}")
+        
     def get(self, path: str):
 
         def decorator(func):
