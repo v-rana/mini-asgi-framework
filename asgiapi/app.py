@@ -1,6 +1,7 @@
 #a app class with asgi contract
 import json
 from asgiapi.router import Router
+from asgiapi.response import JSONResponse
 from functools import wraps 
 
 class App:
@@ -15,21 +16,21 @@ class App:
         if scope['type'] != 'http':
             return 
         
-        response_body = json.dumps({"message": "Begin custom framework"}).encode()
 
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'application/json'],
-            ],
-        })
+        path = scope["path"]
+        method = scope["method"]
+        
+        try:
+            handler, params = self.router.match(path,method)
 
+            result = await handler(**params)
 
-        await send({
-            'type':'http.response.body',
-            'body': response_body,
-        })
+            response = JSONResponse(result)
+        except Exception as e:
+            response = JSONResponse(
+                {"error":str(e)}, status_code=500)
+        
+        await response.send(send)
     
     def get(self, path: str):
 
