@@ -7,12 +7,13 @@ class RouteNotFound(Exception):
     pass
 
 class Route:
-    def __init__(self,path_template,regex,params_names,method,handler):
+    def __init__(self,path_template,regex,params_names,method,handler,score):
         self.path_template = path_template
         self.regex = regex
         self.params_names = params_names
         self.method = method
         self.handler = handler
+        self.score = score
     
     def __repr__(self):
         return f"<Route path_template={self.path_template} method={self.method} handler={self.handler.__name__}>"
@@ -24,12 +25,15 @@ class Router:
     
     def add_route(self,path_template,method,handler):
         regex, params_names = compile_path(path_template)
+        score = self.compute_score(path_template)
         route = Route(
             path_template=path_template,
             regex=regex,
             params_names=params_names,
-            method=method,handler=handler)
+            method=method,handler=handler,
+            score=score)  
         self.routes.append(route)
+        self.routes.sort(key=lambda r: r.score, reverse=True)  # Sort routes by score in descending order
 
     def match(self,path,method):
         path_matched = False
