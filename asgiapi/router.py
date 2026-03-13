@@ -52,7 +52,20 @@ class Router:
             raise MethodNotAllowed(f"Method {method} not allowed for path {path}")
 
         raise RouteNotFound(f"No Route found for path {path}") 
+
+    def compute_score(self,path):
+        segments = path.strip("/").split("/")
+        score = 0
+
+        for segment in segments:
+            if segment.startswith("{") and segment.endswith("}"):
+                score += 1
+            else:
+                score += 10
         
+        return score
+
+
     def __getitem__(self, key):
         try:
             return self.routes[key]
