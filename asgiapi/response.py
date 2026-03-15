@@ -29,3 +29,10 @@ class JSONResponse(Response):
 
         super().__init__(body,status_code,headers)
 
+class RedirectResponse(Response):
+
+    def __init__(self,location,status_code=307):
+        headers = [(b'location',location.encode())]
+
+        super().__init__(b'',status_code,headers)
+
