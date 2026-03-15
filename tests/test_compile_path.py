@@ -1,4 +1,4 @@
-from asgiapi.utils.router_utils import compile_path
+from asgiapi.utils.routing_utils import compile_path
 
 
 def test_compile_path():

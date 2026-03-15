@@ -16,3 +16,14 @@ def compile_path(path_template):
     compiled = re.compile(regex_pattern)
     
     return compiled , param_names
+
+
+def toggle_trailing_slash(path):
+
+    if path=="/":
+        return path
+    
+    if path.endswith("/"):
+        return path[:-1]
+    
+    return path + "/"

@@ -1,10 +1,6 @@
-from asgiapi.utils.router_utils import compile_path
-
-class MethodNotAllowed(Exception):
-    pass
-
-class RouteNotFound(Exception):
-    pass
+from asgiapi.utils.routing_utils import compile_path
+from asgiapi.routing.exception import MethodNotAllowed, RouteNotFound
+from asgiapi.routing.match import Match
 
 class Route:
     def __init__(self,path_template,regex,params_names,method,handler,score):
@@ -18,6 +14,19 @@ class Route:
     def __repr__(self):
         return f"<Route path_template={self.path_template} method={self.method} handler={self.handler.__name__}>"
 
+    def matches(self,path,method):
+
+        match = self.regex.match(path)
+
+        if not match:
+            return Match.NONE, None
+        
+        if method != self.method:
+            return Match.PARTIAL, None
+        
+        params = match.groupdict()
+        return Match.FULL, params
+    
 class Router:
     def __init__(self):
         #list of routes instances
@@ -36,23 +45,19 @@ class Router:
         self.routes.sort(key=lambda r: r.score, reverse=True)  # Sort routes by score in descending order
 
     def match(self,path,method):
-        path_matched = False
+        partial_match = False
 
         for route in self.routes:
-            match = route.regex.match(path)
-
-            if not match:
-                continue
-
-            path_matched = True
-
-            if method != route.method:
-                continue
             
-            params = match.groupdict(path)
-            return route.handler, params
+            match,params = route.matches(path,method)
 
-        if path_matched:
+            if match == Match.FULL:
+                return route.handler, params
+            
+            if match == Match.PARTIAL:
+                partial_match = True
+            
+        if partial_match:
             raise MethodNotAllowed(f"Method {method} not allowed for path {path}")
 
         raise RouteNotFound(f"No Route found for path {path}") 
