@@ -1,9 +1,13 @@
 #a app class with asgi contract
 import json
 import inspect
-from asgiapi.router import Router
-from asgiapi.response import JSONResponse
 from functools import wraps 
+
+from asgiapi.utils.routing_utils import toggle_trailing_slash
+from asgiapi.routing.exception import RouteNotFound
+from asgiapi.router import Router
+from asgiapi.response import JSONResponse, RedirectResponse
+
 
 class App:
 
@@ -22,13 +26,17 @@ class App:
         method = scope["method"]
         
         try:
-            handler, params = self.router.match(path,method)
+            match = self.router.match(path,method)
+            if isinstance(match,RedirectResponse):
+                response = match
+            else:
+                handler, params = match
 
-            self._validate_handler_params(handler,params)
+                self._validate_handler_params(handler,params)
 
-            result = await handler(**params)
+                result = await handler(**params)
 
-            response = JSONResponse(result)
+                response = JSONResponse(result)
         except Exception as e:
             response = JSONResponse(
                 {"error":str(e)}, status_code=500)
@@ -43,7 +51,23 @@ class App:
             sig.bind_partial(**params)
         except TypeError as e:
             raise ValueError(f"Handler parameters do not match the route parameters: {e}")
-        
+    
+
+    def _resolve_route(self,path,method):
+        try:
+
+            handler,params = self.router.match(path,method)
+            return handler,params 
+        except RouteNotFound:
+            alt_path = toggle_trailing_slash(path)
+            try:
+                self.route.match(alt_path,method)
+                
+            except RouteNotFound:
+                raise 
+
+            return RedirectResponse(alt_path) 
+
     def get(self, path: str):
 
         def decorator(func):
