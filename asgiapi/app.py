@@ -26,7 +26,7 @@ class App:
         method = scope["method"]
         
         try:
-            match = self.router.match(path,method)
+            match = self._resolve_route(path,method)
             if isinstance(match,RedirectResponse):
                 response = match
             else:
