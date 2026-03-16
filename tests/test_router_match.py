@@ -6,7 +6,7 @@ def test_route_match():
 
     router = Router()
 
-    async def handler(*, id):
+    async def handler(*, id:int):
         pass
 
     router.add_route("/users/{id}", "GET", handler)

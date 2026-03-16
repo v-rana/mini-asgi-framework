@@ -10,7 +10,7 @@ def test_static_route_priority():
     async def me():
         return "me"
 
-    async def user(*, id):
+    async def user(*, id:int):
         return id
 
     router.add_route("/users/{id}", "GET", user)
