@@ -20,39 +20,15 @@ class App:
 
         if scope['type'] != 'http':
             return 
-        
-
-        path = scope["path"]
-        method = scope["method"]
-        
+              
         try:
-            match = self._resolve_route(path,method)
-            if isinstance(match,RedirectResponse):
-                response = match
-            else:
-                handler, params = match
-
-                self._validate_handler_params(handler,params)
-
-                result = await handler(**params)
-
-                response = JSONResponse(result)
+            response = await self._handle_requests(scope)
         except Exception as e:
             response = JSONResponse(
                 {"error":str(e)}, status_code=500)
         
         await response.send(send)
-    
-    def _validate_handler_params(self,handler,params):
         
-        sig = inspect.signature(handler)
-
-        try:
-            sig.bind_partial(**params)
-        except TypeError as e:
-            raise ValueError(f"Handler parameters do not match the route parameters: {e}")
-    
-
     def _resolve_route(self,path,method):
         try:
 
@@ -61,13 +37,29 @@ class App:
         except RouteNotFound:
             alt_path = toggle_trailing_slash(path)
             try:
-                self.route.match(alt_path,method)
+                self.router.match(alt_path,method)
                 
             except RouteNotFound:
                 raise 
 
             return RedirectResponse(alt_path) 
+    
+    async def _handle_requests(self,scope):
+        path = scope["path"]
+        method = scope["method"]
+        
+        match = self._resolve_route(path,method)
 
+        if isinstance(match,RedirectResponse):
+            return match
+        handler, params = match
+
+        # self._validate_handler_params(handler,params)
+
+        result = await handler(**params)
+
+        return JSONResponse(result)
+    
     def get(self, path: str):
 
         def decorator(func):
