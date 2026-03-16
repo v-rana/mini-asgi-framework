@@ -1,3 +1,4 @@
+import inspect
 from asgiapi.utils.routing_utils import compile_path
 from asgiapi.routing.exception import MethodNotAllowed, RouteNotFound
 from asgiapi.routing.match import Match
@@ -32,8 +33,27 @@ class Router:
         #list of routes instances
         self.routes = []
     
+    def _validate_handler(self, handler, param_names):
+
+        sig = inspect.signature(handler)
+
+        for name in param_names:
+
+            param = sig.parameters.get(name)
+
+            if param is None:
+                raise ValueError(
+                    f"Handler missing parameter '{name}'"
+                )
+
+            if param.annotation is inspect.Parameter.empty:
+                raise ValueError(
+                    f"Param '{name}' must have a type annotation"
+                )
+            
     def add_route(self,path_template,method,handler):
         regex, params_names = compile_path(path_template)
+        self._validate_handler(handler,params_names)
         score = self.compute_score(path_template)
         route = Route(
             path_template=path_template,
