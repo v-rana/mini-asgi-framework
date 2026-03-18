@@ -14,20 +14,16 @@ class App:
     def __init__(self):
         self.router = Router()
 
-    async def __call__(self,scope,receive,send):
-        for i,(k,v) in enumerate(scope.items()):
-            print(f"{i} item: {k} - {v}")
 
-        if scope['type'] != 'http':
-            return 
-              
-        try:
-            response = await self._handle_requests(scope)
-        except Exception as e:
-            response = JSONResponse(
-                {"error":str(e)}, status_code=500)
-        
-        await response.send(send)
+    async def __call__(self,scope,receive,send):
+
+        if scope['type']=="http":
+            response = await self._handle_http(scope,receive)
+            await response.send(send)
+        elif scope['type']=="lifespan":
+            await self._handle_lifespan(receive,send)
+        else:
+            raise NotImplementedError(f"Unsuppoorted scope type {scope['type']}")
         
     def _resolve_route(self,path,method):
         try:
@@ -44,7 +40,8 @@ class App:
 
             return RedirectResponse(alt_path) 
     
-    async def _handle_requests(self,scope):
+
+    async def _handle_http(self,scope,receive):
         path = scope["path"]
         method = scope["method"]
         
@@ -60,6 +57,16 @@ class App:
 
         return JSONResponse(result)
     
+    async def _handle_lifespan(self,receive,send):
+        while True:
+            message = await receive()
+
+            if message['type'] == 'lifespan.startup':
+                await send({'type':'lifespan.startup.complete'})
+            elif message['type'] == 'lifespan.shutdown':
+                await send({'type':'lifespan.shutdown.complete'})
+                return
+
     def get(self, path: str):
 
         def decorator(func):
