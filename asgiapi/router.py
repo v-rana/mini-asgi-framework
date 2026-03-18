@@ -50,7 +50,16 @@ class Router:
                 raise ValueError(
                     f"Param '{name}' must have a type annotation"
                 )
-            
+    
+    def _check_duplicate(self,route):
+        for existing in self.routes:
+            if (
+                existing.regex.pattern == route.regex.pattern
+                and existing.method == route.method
+            ):
+                raise ValueError(
+                    f"Duplicate route detected for path '{route.path_template}' and method '{route.method}'"
+                )
     def add_route(self,path_template,method,handler):
         regex, params_names = compile_path(path_template)
         self._validate_handler(handler,params_names)
@@ -61,6 +70,7 @@ class Router:
             params_names=params_names,
             method=method,handler=handler,
             score=score)  
+        self._check_duplicate(route)
         self.routes.append(route)
         self.routes.sort(key=lambda r: r.score, reverse=True)  # Sort routes by score in descending order
 
@@ -82,17 +92,18 @@ class Router:
 
         raise RouteNotFound(f"No Route found for path {path}") 
 
-    def compute_score(self,path):
+    def compute_score(self, path):
         segments = path.strip("/").split("/")
-        score = 0
+
+        score = []
 
         for segment in segments:
             if segment.startswith("{") and segment.endswith("}"):
-                score += 1
+                score.append(0)   # dynamic
             else:
-                score += 10
-        
-        return score
+                score.append(1)   # static
+
+        return tuple(score)
 
 
     def __getitem__(self, key):
