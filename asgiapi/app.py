@@ -8,6 +8,7 @@ from asgiapi.routing.exception import RouteNotFound
 from asgiapi.router import Router
 from asgiapi.response import JSONResponse, RedirectResponse
 from asgiapi.request import Request
+from asgiapi.param_resolver import ParameterResolver
 
 
 class App:
@@ -15,6 +16,7 @@ class App:
     def __init__(self):
         self.router = Router()
         self.state = {}
+        self.parameter_resolver = ParameterResolver()
 
     async def __call__(self,scope,receive,send):
 
@@ -42,25 +44,7 @@ class App:
             return RedirectResponse(alt_path) 
     
     async def _execute_handler(self, handler, request, params):
-        sig = inspect.signature(handler)
-        parameters = sig.parameters
-        bound_values = {}
-        for name,param in parameters.items():
-            #1. Inject request 
-            if name == "request":
-                bound_values[name] = request
-            #2. path params
-            elif name in params:
-                bound_values[name] = params[name]
-            #3. query params
-            elif name in request.query_params:
-                bound_values[name]=request.query_params[name]
-            #4. default params
-            elif param.default is not inspect.Parameter.empty:
-                bound_values[name]= param.default
-            else:
-                raise TypeError(f"Missing required parameter: {name}")
-
+        bound_values = self.parameter_resolver.build_arguments(handler,request,params)
         return await handler(**bound_values)
     
     async def _handle_http(self,scope,receive):
