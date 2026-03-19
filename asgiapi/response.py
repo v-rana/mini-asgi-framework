@@ -19,6 +19,7 @@ class Response:
         await send(
             {'type':"http.response.body",
             'body':self.body,
+            'more_body':False
             }
         )
 
