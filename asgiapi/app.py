@@ -7,13 +7,14 @@ from asgiapi.utils.routing_utils import toggle_trailing_slash
 from asgiapi.routing.exception import RouteNotFound
 from asgiapi.router import Router
 from asgiapi.response import JSONResponse, RedirectResponse
+from asgiapi.request import Request
 
 
 class App:
 
     def __init__(self):
         self.router = Router()
-
+        self.state = {}
 
     async def __call__(self,scope,receive,send):
 
@@ -40,7 +41,15 @@ class App:
 
             return RedirectResponse(alt_path) 
     
+    async def _execute_handler(self, handler, request, params):
+        sig = inspect.signature(handler)
+        parameters = sig.parameters
 
+        if "request" in parameters:
+            return await handler(request, **params)
+        else:
+            return await handler(**params)
+    
     async def _handle_http(self,scope,receive):
         path = scope["path"]
         method = scope["method"]
@@ -51,9 +60,12 @@ class App:
             return match
         handler, params = match
 
-        # self._validate_handler_params(handler,params)
+                # self._validate_handler_params(handler,params)
+        request = Request(scope, receive)
+        result = await self._execute_handler(handler, request, params)
 
-        result = await handler(**params)
+        await request._drain()
+
 
         return JSONResponse(result)
     
@@ -67,20 +79,20 @@ class App:
                 await send({'type':'lifespan.shutdown.complete'})
                 return
 
+    def add_route(self, path, handler, method='GET'):
+        self.router.add_route(path,method,handler)
+
     def get(self, path: str):
 
         def decorator(func):
 
-            @wraps(func)
-            async def wrapper(*args, **kwargs):
-                return await func(*args, **kwargs)
-
-            self.router.add_route(
-                path_template=path,
+            #only register here and return the orginal function
+            self.add_route(
+                path=path,
                 method="GET",
-                handler=wrapper
+                handler=func
             )
 
-            return wrapper
+            return func
 
         return decorator
