@@ -44,11 +44,24 @@ class App:
     async def _execute_handler(self, handler, request, params):
         sig = inspect.signature(handler)
         parameters = sig.parameters
+        bound_values = {}
+        for name,param in parameters.items():
+            #1. Inject request 
+            if name == "request":
+                bound_values[name] = request
+            #2. path params
+            elif name in params:
+                bound_values[name] = params[name]
+            #3. query params
+            elif name in request.query_params:
+                bound_values[name]=request.query_params[name]
+            #4. default params
+            elif param.default is not inspect.Parameter.empty:
+                bound_values[name]= param.default
+            else:
+                raise TypeError(f"Missing required parameter: {name}")
 
-        if "request" in parameters:
-            return await handler(request, **params)
-        else:
-            return await handler(**params)
+        return await handler(**bound_values)
     
     async def _handle_http(self,scope,receive):
         path = scope["path"]

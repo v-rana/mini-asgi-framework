@@ -26,8 +26,8 @@ class Request:
     @property
     def query_params(self):
         raw = self.scope.get("query_string",b"").decode()
-        return parse_qs(raw)
-    
+        params = parse_qs(raw)
+        return {k:v[0] for k,v in params.items()}
 
     async def body(self):
         body=b""
