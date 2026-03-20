@@ -9,12 +9,14 @@ from asgiapi.router import Router
 from asgiapi.response import JSONResponse, RedirectResponse
 from asgiapi.request import Request
 from asgiapi.param_resolver import ParameterResolver
+from asgiapi.response_resolver import ResponseResolver  
 
 
 class App:
 
     def __init__(self):
         self.router = Router()
+        self.response_resolver = ResponseResolver()
         self.state = {}
         self.parameter_resolver = ParameterResolver()
 
@@ -64,7 +66,7 @@ class App:
         await request._drain()
 
 
-        return JSONResponse(result)
+        return self.response_resolver.resolve(result)
     
     async def _handle_lifespan(self,receive,send):
         while True:
