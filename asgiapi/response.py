@@ -23,6 +23,12 @@ class Response:
             }
         )
 
+class PlainTextResponse(Response):
+    def __init__(self,text,status_code=200):
+        body = text.encode()
+        headers = [(b'content-type',b'text/plain')]
+        super().__init__(body,status_code,headers)
+        
 class JSONResponse(Response):
     def __init__(self,data,status_code=200):
         body = json.dumps(data).encode()
