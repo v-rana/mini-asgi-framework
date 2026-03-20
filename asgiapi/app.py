@@ -3,6 +3,7 @@ import json
 import inspect
 from functools import wraps 
 
+from asgiapi.exception_handler import exception_handler
 from asgiapi.utils.routing_utils import toggle_trailing_slash
 from asgiapi.routing.exception import RouteNotFound
 from asgiapi.router import Router
@@ -23,12 +24,17 @@ class App:
     async def __call__(self,scope,receive,send):
 
         if scope['type']=="http":
-            response = await self._handle_http(scope,receive)
+            
+            try:
+                response = await self._handle_http(scope,receive) 
+            except Exception as e:
+                response = exception_handler(e)
+
             await response.send(send)
         elif scope['type']=="lifespan":
             await self._handle_lifespan(receive,send)
         else:
-            raise NotImplementedError(f"Unsuppoorted scope type {scope['type']}")
+            raise NotImplementedError(f"Unsupported scope type {scope['type']}")
         
     def _resolve_route(self,path,method):
         try:
